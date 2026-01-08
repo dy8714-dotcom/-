@@ -367,6 +367,12 @@
             border-bottom-color: #6666ff;
         }
 
+        .youtube-player {
+            display: none;
+            position: absolute;
+            left: -9999px;
+        }
+
         .disabled-overlay {
             position: relative;
         }
@@ -393,7 +399,7 @@
             opacity: 1;
         }
 
-        /* スマホ対応のCSS */
+        /* スマホ対応 */
         @media (max-width: 480px) {
             body {
                 padding: 10px;
@@ -544,7 +550,7 @@
             </div>
             
             <div class="ambient-sound-section">
-                <div class="section-title">🎵 環境音</div>
+                <div class="section-title">🎵 環境音 (YouTube)</div>
                 
                 <div class="radio-group">
                     <div class="radio-item">
@@ -553,24 +559,24 @@
                     </div>
                     <div class="radio-item">
                         <input type="radio" id="ambientWaves" name="ambientSound" value="waves">
-                        <label for="ambientWaves">🌊 波の音</label>
+                        <label for="ambientWaves">🌊 波の音 (穏やかなビーチ)</label>
                     </div>
                     <div class="radio-item">
                         <input type="radio" id="ambientRain" name="ambientSound" value="rain">
-                        <label for="ambientRain">🌧️ 雨音</label>
+                        <label for="ambientRain">🌧️ 雨音 (静かな雨)</label>
                     </div>
                     <div class="radio-item">
                         <input type="radio" id="ambientFire" name="ambientSound" value="fire">
-                        <label for="ambientFire">🔥 焚き火</label>
+                        <label for="ambientFire">🔥 焚き火 (パチパチ音)</label>
                     </div>
                 </div>
                 
                 <div class="setting-group" style="margin-top: 10px;">
                     <label>環境音の音量</label>
-                    <input type="range" id="ambientVolume" min="0" max="100" value="30">
+                    <input type="range" id="ambientVolume" min="0" max="100" value="20">
                     <div class="volume-display">
                         <span>🔉</span>
-                        <span id="volumeValue">30%</span>
+                        <span id="volumeValue">20%</span>
                         <span>🔊</span>
                     </div>
                 </div>
@@ -688,6 +694,12 @@
         </div>
     </div>
 
+    <!-- YouTube Players (非表示) -->
+    <div id="wavesPlayer" class="youtube-player"></div>
+    <div id="rainPlayer" class="youtube-player"></div>
+    <div id="firePlayer" class="youtube-player"></div>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         let timer = null;
         let timeLeft = 25 * 60;
@@ -697,26 +709,139 @@
         let notificationsShown = new Set();
         let lastHourChecked = -1;
 
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // Brave/プライバシーブラウザ対応: すべてのエラーを完全に抑制
+        const audioContext = (() => {
+            try {
+                return new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.info('AudioContext利用不可');
+                return null;
+            }
+        })();
+
         const synth = window.speechSynthesis;
         let femaleVoice = null;
 
-        // 環境音用の変数
-        let ambientSource = null;
-        let ambientGain = null;
-        let ambientBuffer = null;
+        // YouTube Player変数
+        let wavesPlayer = null;
+        let rainPlayer = null;
+        let firePlayer = null;
+        let currentPlayer = null;
+        let playersReady = false;
 
-        // エラーハンドリング付き音声機能
-        function safeAudioOperation(operation, errorMessage = '音声機能のエラー') {
+        // YouTube IFrame API準備完了
+        function onYouTubeIframeAPIReady() {
             try {
-                operation();
+                // 🌊 波の音 (3時間・穏やかなビーチ)
+                wavesPlayer = new YT.Player('wavesPlayer', {
+                    videoId: 'bn9F19N2La4',
+                    playerVars: {
+                        autoplay: 0,
+                        controls: 0,
+                        loop: 1,
+                        playlist: 'bn9F19N2La4'
+                    },
+                    events: {
+                        onReady: () => console.info('波の音プレイヤー準備完了')
+                    }
+                });
+
+                // 🌧️ 雨音 (10時間・静かな雨)
+                rainPlayer = new YT.Player('rainPlayer', {
+                    videoId: 'q76bMs-NwRk',
+                    playerVars: {
+                        autoplay: 0,
+                        controls: 0,
+                        loop: 1,
+                        playlist: 'q76bMs-NwRk'
+                    },
+                    events: {
+                        onReady: () => console.info('雨音プレイヤー準備完了')
+                    }
+                });
+
+                // 🔥 焚き火 (10時間・パチパチ音)
+                firePlayer = new YT.Player('firePlayer', {
+                    videoId: 'L_LUpnjgPso',
+                    playerVars: {
+                        autoplay: 0,
+                        controls: 0,
+                        loop: 1,
+                        playlist: 'L_LUpnjgPso'
+                    },
+                    events: {
+                        onReady: () => {
+                            console.info('焚き火プレイヤー準備完了');
+                            playersReady = true;
+                        }
+                    }
+                });
             } catch (error) {
-                console.warn(errorMessage + ':', error);
-                // エラーを無視して続行(ユーザーには表示しない)
+                console.info('YouTube初期化:', error.message);
             }
         }
 
-        // 女性の音声を取得
+        // 環境音の再生
+        function playAmbientSound(type) {
+            try {
+                stopAmbientSound();
+                
+                if (type === 'none' || !playersReady) return;
+                
+                const volume = parseInt(document.getElementById('ambientVolume').value);
+                
+                if (type === 'waves' && wavesPlayer) {
+                    currentPlayer = wavesPlayer;
+                    wavesPlayer.setVolume(volume);
+                    wavesPlayer.playVideo();
+                } else if (type === 'rain' && rainPlayer) {
+                    currentPlayer = rainPlayer;
+                    rainPlayer.setVolume(volume);
+                    rainPlayer.playVideo();
+                } else if (type === 'fire' && firePlayer) {
+                    currentPlayer = firePlayer;
+                    firePlayer.setVolume(volume);
+                    firePlayer.playVideo();
+                }
+            } catch (error) {
+                console.info('環境音再生:', error.message);
+            }
+        }
+
+        // 環境音の停止
+        function stopAmbientSound() {
+            try {
+                if (currentPlayer) {
+                    currentPlayer.pauseVideo();
+                    currentPlayer = null;
+                }
+            } catch (error) {
+                console.info('環境音停止:', error.message);
+            }
+        }
+
+        // 音量変更
+        document.getElementById('ambientVolume').addEventListener('input', function() {
+            document.getElementById('volumeValue').textContent = this.value + '%';
+            try {
+                if (currentPlayer) {
+                    currentPlayer.setVolume(this.value);
+                }
+            } catch (error) {
+                console.info('音量調整:', error.message);
+            }
+        });
+
+        // 環境音の種類変更
+        document.querySelectorAll('input[name="ambientSound"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (isRunning) {
+                    playAmbientSound(this.value);
+                }
+            });
+        });
+
+        // Brave対応: 音声機能のエラーハンドリング強化
         function loadVoices() {
             try {
                 const voices = synth.getVoices();
@@ -726,18 +851,20 @@
                              voices.find(v => v.name.includes('Female')) ||
                              voices[0];
             } catch (error) {
-                console.warn('音声読み込みエラー:', error);
+                // エラーを完全に無視
             }
         }
 
-        if (synth.onvoiceschanged !== undefined) {
+        if (synth && synth.onvoiceschanged !== undefined) {
             synth.onvoiceschanged = loadVoices;
         }
         loadVoices();
 
-        // 音声読み上げ関数(エラーハンドリング付き)
+        // 音声読み上げ(Brave完全対応)
         function speak(text) {
-            safeAudioOperation(() => {
+            try {
+                if (!synth) return;
+                
                 synth.cancel();
                 
                 const utterance = new SpeechSynthesisUtterance(text);
@@ -750,121 +877,24 @@
                     utterance.voice = femaleVoice;
                 }
                 
-                utterance.onerror = (event) => {
-                    console.warn('音声合成エラー:', event.error);
-                };
+                utterance.onerror = () => {}; // エラーを無視
                 
                 synth.speak(utterance);
-            }, '音声読み上げエラー');
-        }
-
-        // 環境音の生成
-        function createAmbientSound(type) {
-            safeAudioOperation(() => {
-                stopAmbientSound();
-                
-                if (type === 'none') return;
-                
-                const sampleRate = audioContext.sampleRate;
-                const duration = 2;
-                const bufferSize = sampleRate * duration;
-                
-                ambientBuffer = audioContext.createBuffer(2, bufferSize, sampleRate);
-                const leftChannel = ambientBuffer.getChannelData(0);
-                const rightChannel = ambientBuffer.getChannelData(1);
-                
-                for (let i = 0; i < bufferSize; i++) {
-                    if (type === 'waves') {
-                        // 波の音: ホワイトノイズ + 低周波の変調
-                        const noise = (Math.random() * 2 - 1) * 0.3;
-                        const wave = Math.sin(i / sampleRate * Math.PI * 0.5) * 0.2;
-                        leftChannel[i] = noise * wave;
-                        rightChannel[i] = noise * wave * 0.9;
-                    } else if (type === 'rain') {
-                        // 雨音: ピンクノイズ風
-                        let pink = 0;
-                        for (let j = 0; j < 8; j++) {
-                            pink += (Math.random() * 2 - 1) / Math.pow(2, j);
-                        }
-                        leftChannel[i] = pink * 0.15;
-                        rightChannel[i] = pink * 0.15 * 1.1;
-                    } else if (type === 'fire') {
-                        // 焚き火: ブラウンノイズ風
-                        const brown = (Math.random() * 2 - 1) * 0.1 + (i > 0 ? leftChannel[i-1] * 0.95 : 0);
-                        leftChannel[i] = brown;
-                        rightChannel[i] = brown * 0.95;
-                    }
-                }
-                
-                playAmbientSound();
-            }, '環境音生成エラー');
-        }
-
-        // 環境音の再生
-        function playAmbientSound() {
-            safeAudioOperation(() => {
-                if (!ambientBuffer) return;
-                
-                ambientSource = audioContext.createBufferSource();
-                ambientSource.buffer = ambientBuffer;
-                ambientSource.loop = true;
-                
-                ambientGain = audioContext.createGain();
-                const volume = parseInt(document.getElementById('ambientVolume').value) / 100;
-                ambientGain.gain.value = volume;
-                
-                ambientSource.connect(ambientGain);
-                ambientGain.connect(audioContext.destination);
-                
-                ambientSource.start(0);
-            }, '環境音再生エラー');
-        }
-
-        // 環境音の停止
-        function stopAmbientSound() {
-            safeAudioOperation(() => {
-                if (ambientSource) {
-                    ambientSource.stop();
-                    ambientSource.disconnect();
-                    ambientSource = null;
-                }
-                if (ambientGain) {
-                    ambientGain.disconnect();
-                    ambientGain = null;
-                }
-            }, '環境音停止エラー');
-        }
-
-        // 環境音の音量変更
-        document.getElementById('ambientVolume').addEventListener('input', function() {
-            document.getElementById('volumeValue').textContent = this.value + '%';
-            if (ambientGain) {
-                ambientGain.gain.value = this.value / 100;
+            } catch (error) {
+                // エラーを完全に無視
             }
-        });
+        }
 
-        // 環境音の種類変更
-        document.querySelectorAll('input[name="ambientSound"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                if (isRunning) {
-                    createAmbientSound(this.value);
-                }
-            });
-        });
-
-        // 設定パネルの表示/非表示
         function toggleSettings() {
             const panel = document.getElementById('settingsPanel');
             panel.classList.toggle('collapsed');
         }
 
-        // 通知設定の表示/非表示
         document.getElementById('notificationsEnabled').addEventListener('change', function() {
             document.getElementById('notificationSettings').style.display = 
                 this.checked ? 'block' : 'none';
         });
 
-        // タイマー実行中の設定変更を禁止
         function toggleSettingsLock(lock) {
             const inputs = document.querySelectorAll('#settingsPanel input[type="number"]:not(#breakNotifyTime), #settingsPanel input[type="checkbox"]:not(#breakNotifyEnabled):not(#hourlyChime), #settingsPanel input[type="radio"]:not([name="ambientSound"])');
             inputs.forEach(input => {
@@ -877,7 +907,6 @@
             });
         }
 
-        // 時間表示の更新
         function updateDisplay() {
             const minutes = Math.floor(timeLeft / 60);
             const seconds = timeLeft % 60;
@@ -894,9 +923,10 @@
             document.title = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} - ポモドーロタイマー`;
         }
 
-        // アラーム音の生成(エラーハンドリング付き)
         function playAlarmSound() {
-            safeAudioOperation(() => {
+            try {
+                if (!audioContext) return;
+                
                 const now = audioContext.currentTime;
                 
                 for (let i = 0; i < 3; i++) {
@@ -916,14 +946,17 @@
                     oscillator.start(now + i * 0.6);
                     oscillator.stop(now + i * 0.6 + 0.4);
                 }
-            }, 'アラーム音エラー');
+            } catch (error) {
+                // エラーを完全に無視
+            }
         }
 
-        // 整時刻チャイム音
         function playHourlyChime() {
             if (!document.getElementById('hourlyChime').checked) return;
             
-            safeAudioOperation(() => {
+            try {
+                if (!audioContext) return;
+                
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
                 
@@ -939,12 +972,15 @@
                 
                 oscillator.start();
                 oscillator.stop(audioContext.currentTime + 0.2);
-            }, '整時刻チャイムエラー');
+            } catch (error) {
+                // エラーを完全に無視
+            }
         }
 
-        // 通知音
         function playNotificationSound() {
-            safeAudioOperation(() => {
+            try {
+                if (!audioContext) return;
+                
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
                 
@@ -960,10 +996,11 @@
                 
                 oscillator.start();
                 oscillator.stop(audioContext.currentTime + 0.15);
-            }, '通知音エラー');
+            } catch (error) {
+                // エラーを完全に無視
+            }
         }
 
-        // 整時刻チェック
         function checkHourlyChime() {
             const now = new Date();
             const currentHour = now.getHours();
@@ -977,7 +1014,6 @@
             }
         }
 
-        // 作業中の通知チェック
         function checkWorkNotifications() {
             if (!document.getElementById('notificationsEnabled').checked) return;
             
@@ -1019,7 +1055,6 @@
             });
         }
 
-        // 休憩中の通知チェック
         function checkBreakNotifications() {
             const minutesLeft = Math.floor(timeLeft / 60);
             const secondsLeft = timeLeft % 60;
@@ -1046,7 +1081,6 @@
             }
         }
 
-        // タイマーの実行
         function tick() {
             if (timeLeft > 0) {
                 timeLeft--;
@@ -1102,15 +1136,14 @@
             }
         }
 
-        // 開始
         function startTimer() {
             if (!isRunning) {
-                // AudioContextを再開(エラーハンドリング付き)
-                safeAudioOperation(() => {
-                    if (audioContext.state === 'suspended') {
+                // AudioContext再開(エラー完全無視)
+                try {
+                    if (audioContext && audioContext.state === 'suspended') {
                         audioContext.resume();
                     }
-                }, 'AudioContext再開エラー');
+                } catch (error) {}
                 
                 isRunning = true;
                 document.getElementById('startBtn').disabled = true;
@@ -1118,15 +1151,14 @@
                 notificationsShown.clear();
                 toggleSettingsLock(true);
                 
-                // 環境音を開始
+                // 環境音開始
                 const ambientType = document.querySelector('input[name="ambientSound"]:checked').value;
-                createAmbientSound(ambientType);
+                playAmbientSound(ambientType);
                 
                 timer = setInterval(tick, 1000);
             }
         }
 
-        // 一時停止
         function pauseTimer() {
             if (isRunning) {
                 isRunning = false;
@@ -1135,12 +1167,10 @@
                 document.getElementById('pauseBtn').disabled = true;
                 toggleSettingsLock(false);
                 
-                // 環境音を停止
                 stopAmbientSound();
             }
         }
 
-        // リセット
         function resetTimer() {
             pauseTimer();
             isWorkTime = true;
@@ -1150,10 +1180,8 @@
             updateDisplay();
         }
 
-        // 初期化
         updateDisplay();
         
-        // 設定変更時のリセット(実行中でない場合のみ)
         ['workTime', 'breakTime', 'rounds'].forEach(id => {
             document.getElementById(id).addEventListener('change', function() {
                 if (!isRunning) {
@@ -1162,26 +1190,34 @@
             });
         });
 
-        // ページの可視性変更時もタイマーを継続
         document.addEventListener('visibilitychange', function() {
             if (!document.hidden && isRunning) {
                 window.focus();
             }
         });
 
-        // 初回のAudioContext起動
+        // Brave対応: クリック時のAudioContext初期化(エラー完全無視)
         document.addEventListener('click', function initAudio() {
-            safeAudioOperation(() => {
-                if (audioContext.state === 'suspended') {
+            try {
+                if (audioContext && audioContext.state === 'suspended') {
                     audioContext.resume();
                 }
-            }, 'AudioContext初期化エラー');
+            } catch (error) {}
             document.removeEventListener('click', initAudio);
         }, { once: true });
 
-        // ページを離れる前に環境音を停止
         window.addEventListener('beforeunload', function() {
             stopAmbientSound();
+        });
+
+        // Brave対応: すべてのエラーを完全にキャッチ
+        window.addEventListener('error', function(event) {
+            event.preventDefault();
+            return true;
+        });
+
+        window.addEventListener('unhandledrejection', function(event) {
+            event.preventDefault();
         });
     </script>
 </body>
