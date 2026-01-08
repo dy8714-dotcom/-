@@ -112,12 +112,17 @@
             touch-action: manipulation;
         }
 
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .start-btn {
             background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
             color: #000;
         }
 
-        .start-btn:hover, .start-btn:active {
+        .start-btn:hover:not(:disabled), .start-btn:active:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
         }
@@ -127,7 +132,7 @@
             color: #000;
         }
 
-        .pause-btn:hover, .pause-btn:active {
+        .pause-btn:hover:not(:disabled), .pause-btn:active:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(255, 170, 0, 0.4);
         }
@@ -137,7 +142,7 @@
             color: white;
         }
 
-        .reset-btn:hover, .reset-btn:active {
+        .reset-btn:hover:not(:disabled), .reset-btn:active:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(255, 68, 68, 0.4);
         }
@@ -166,7 +171,7 @@
             font-weight: 500;
         }
 
-        input[type="number"] {
+        input[type="number"], input[type="range"] {
             width: 100%;
             padding: 8px;
             border: 2px solid #333;
@@ -181,6 +186,51 @@
             border-color: #00ff88;
         }
 
+        input[type="number"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        input[type="range"] {
+            padding: 0;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #333;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+            border: none;
+        }
+
+        .volume-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .volume-display span {
+            color: #00ff88;
+            font-size: 12px;
+        }
+
         .checkbox-group {
             display: flex;
             align-items: center;
@@ -192,6 +242,11 @@
             width: 20px;
             height: 20px;
             cursor: pointer;
+        }
+
+        input[type="checkbox"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .radio-group {
@@ -214,6 +269,11 @@
             width: 18px;
             height: 18px;
             cursor: pointer;
+        }
+
+        input[type="radio"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .radio-item label {
@@ -256,7 +316,7 @@
             border-radius: 8px;
         }
 
-        .toggle-settings:hover, .toggle-settings:active {
+        .toggle-settings:hover:not(:disabled), .toggle-settings:active:not(:disabled) {
             background: #444;
         }
 
@@ -294,7 +354,46 @@
             border-bottom-color: #00ff88;
         }
 
-        /* スマホ対応のCSS追加 */
+        .ambient-sound-section {
+            background: #0a0a2a;
+            border: 1px solid #6666ff;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .ambient-sound-section .section-title {
+            color: #8888ff;
+            border-bottom-color: #6666ff;
+        }
+
+        .disabled-overlay {
+            position: relative;
+        }
+
+        .disabled-overlay::after {
+            content: '⏸️ タイマー停止中のみ変更可能';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #ffaa00;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 5;
+        }
+
+        .disabled-overlay:hover::after {
+            opacity: 1;
+        }
+
+        /* スマホ対応のCSS */
         @media (max-width: 480px) {
             body {
                 padding: 10px;
@@ -374,7 +473,6 @@
             }
         }
 
-        /* 非常に小さい画面用 */
         @media (max-width: 360px) {
             .container {
                 padding: 15px;
@@ -390,7 +488,6 @@
             }
         }
 
-        /* 横向き対応 */
         @media (max-height: 600px) and (orientation: landscape) {
             .container {
                 max-height: 95vh;
@@ -444,6 +541,39 @@
             <div class="setting-group">
                 <label>繰り返し回数</label>
                 <input type="number" id="rounds" value="4" min="1" max="20">
+            </div>
+            
+            <div class="ambient-sound-section">
+                <div class="section-title">🎵 環境音</div>
+                
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="ambientNone" name="ambientSound" value="none" checked>
+                        <label for="ambientNone">🔇 なし</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="ambientWaves" name="ambientSound" value="waves">
+                        <label for="ambientWaves">🌊 波の音</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="ambientRain" name="ambientSound" value="rain">
+                        <label for="ambientRain">🌧️ 雨音</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="ambientFire" name="ambientSound" value="fire">
+                        <label for="ambientFire">🔥 焚き火</label>
+                    </div>
+                </div>
+                
+                <div class="setting-group" style="margin-top: 10px;">
+                    <label>環境音の音量</label>
+                    <input type="range" id="ambientVolume" min="0" max="100" value="30">
+                    <div class="volume-display">
+                        <span>🔉</span>
+                        <span id="volumeValue">30%</span>
+                        <span>🔊</span>
+                    </div>
+                </div>
             </div>
             
             <div class="setting-group">
@@ -571,40 +701,156 @@
         const synth = window.speechSynthesis;
         let femaleVoice = null;
 
-        // 女性の音声を取得
-        function loadVoices() {
-            const voices = synth.getVoices();
-            // 日本語の女性音声を優先的に選択
-            femaleVoice = voices.find(v => v.lang.includes('ja') && v.name.includes('Female')) ||
-                         voices.find(v => v.lang.includes('ja') && (v.name.includes('female') || v.name.includes('woman'))) ||
-                         voices.find(v => v.lang.includes('ja')) ||
-                         voices.find(v => v.name.includes('Female')) ||
-                         voices[0];
+        // 環境音用の変数
+        let ambientSource = null;
+        let ambientGain = null;
+        let ambientBuffer = null;
+
+        // エラーハンドリング付き音声機能
+        function safeAudioOperation(operation, errorMessage = '音声機能のエラー') {
+            try {
+                operation();
+            } catch (error) {
+                console.warn(errorMessage + ':', error);
+                // エラーを無視して続行(ユーザーには表示しない)
+            }
         }
 
-        // 音声合成が読み込まれるのを待つ
+        // 女性の音声を取得
+        function loadVoices() {
+            try {
+                const voices = synth.getVoices();
+                femaleVoice = voices.find(v => v.lang.includes('ja') && v.name.includes('Female')) ||
+                             voices.find(v => v.lang.includes('ja') && (v.name.includes('female') || v.name.includes('woman'))) ||
+                             voices.find(v => v.lang.includes('ja')) ||
+                             voices.find(v => v.name.includes('Female')) ||
+                             voices[0];
+            } catch (error) {
+                console.warn('音声読み込みエラー:', error);
+            }
+        }
+
         if (synth.onvoiceschanged !== undefined) {
             synth.onvoiceschanged = loadVoices;
         }
         loadVoices();
 
-        // 音声読み上げ関数
+        // 音声読み上げ関数(エラーハンドリング付き)
         function speak(text) {
-            // 既存の音声をキャンセル
-            synth.cancel();
-            
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ja-JP';
-            utterance.rate = 1.0;
-            utterance.pitch = 1.1; // 少し高めの声
-            utterance.volume = 1.0;
-            
-            if (femaleVoice) {
-                utterance.voice = femaleVoice;
-            }
-            
-            synth.speak(utterance);
+            safeAudioOperation(() => {
+                synth.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP';
+                utterance.rate = 1.0;
+                utterance.pitch = 1.1;
+                utterance.volume = 1.0;
+                
+                if (femaleVoice) {
+                    utterance.voice = femaleVoice;
+                }
+                
+                utterance.onerror = (event) => {
+                    console.warn('音声合成エラー:', event.error);
+                };
+                
+                synth.speak(utterance);
+            }, '音声読み上げエラー');
         }
+
+        // 環境音の生成
+        function createAmbientSound(type) {
+            safeAudioOperation(() => {
+                stopAmbientSound();
+                
+                if (type === 'none') return;
+                
+                const sampleRate = audioContext.sampleRate;
+                const duration = 2;
+                const bufferSize = sampleRate * duration;
+                
+                ambientBuffer = audioContext.createBuffer(2, bufferSize, sampleRate);
+                const leftChannel = ambientBuffer.getChannelData(0);
+                const rightChannel = ambientBuffer.getChannelData(1);
+                
+                for (let i = 0; i < bufferSize; i++) {
+                    if (type === 'waves') {
+                        // 波の音: ホワイトノイズ + 低周波の変調
+                        const noise = (Math.random() * 2 - 1) * 0.3;
+                        const wave = Math.sin(i / sampleRate * Math.PI * 0.5) * 0.2;
+                        leftChannel[i] = noise * wave;
+                        rightChannel[i] = noise * wave * 0.9;
+                    } else if (type === 'rain') {
+                        // 雨音: ピンクノイズ風
+                        let pink = 0;
+                        for (let j = 0; j < 8; j++) {
+                            pink += (Math.random() * 2 - 1) / Math.pow(2, j);
+                        }
+                        leftChannel[i] = pink * 0.15;
+                        rightChannel[i] = pink * 0.15 * 1.1;
+                    } else if (type === 'fire') {
+                        // 焚き火: ブラウンノイズ風
+                        const brown = (Math.random() * 2 - 1) * 0.1 + (i > 0 ? leftChannel[i-1] * 0.95 : 0);
+                        leftChannel[i] = brown;
+                        rightChannel[i] = brown * 0.95;
+                    }
+                }
+                
+                playAmbientSound();
+            }, '環境音生成エラー');
+        }
+
+        // 環境音の再生
+        function playAmbientSound() {
+            safeAudioOperation(() => {
+                if (!ambientBuffer) return;
+                
+                ambientSource = audioContext.createBufferSource();
+                ambientSource.buffer = ambientBuffer;
+                ambientSource.loop = true;
+                
+                ambientGain = audioContext.createGain();
+                const volume = parseInt(document.getElementById('ambientVolume').value) / 100;
+                ambientGain.gain.value = volume;
+                
+                ambientSource.connect(ambientGain);
+                ambientGain.connect(audioContext.destination);
+                
+                ambientSource.start(0);
+            }, '環境音再生エラー');
+        }
+
+        // 環境音の停止
+        function stopAmbientSound() {
+            safeAudioOperation(() => {
+                if (ambientSource) {
+                    ambientSource.stop();
+                    ambientSource.disconnect();
+                    ambientSource = null;
+                }
+                if (ambientGain) {
+                    ambientGain.disconnect();
+                    ambientGain = null;
+                }
+            }, '環境音停止エラー');
+        }
+
+        // 環境音の音量変更
+        document.getElementById('ambientVolume').addEventListener('input', function() {
+            document.getElementById('volumeValue').textContent = this.value + '%';
+            if (ambientGain) {
+                ambientGain.gain.value = this.value / 100;
+            }
+        });
+
+        // 環境音の種類変更
+        document.querySelectorAll('input[name="ambientSound"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (isRunning) {
+                    createAmbientSound(this.value);
+                }
+            });
+        });
 
         // 設定パネルの表示/非表示
         function toggleSettings() {
@@ -617,6 +863,19 @@
             document.getElementById('notificationSettings').style.display = 
                 this.checked ? 'block' : 'none';
         });
+
+        // タイマー実行中の設定変更を禁止
+        function toggleSettingsLock(lock) {
+            const inputs = document.querySelectorAll('#settingsPanel input[type="number"]:not(#breakNotifyTime), #settingsPanel input[type="checkbox"]:not(#breakNotifyEnabled):not(#hourlyChime), #settingsPanel input[type="radio"]:not([name="ambientSound"])');
+            inputs.forEach(input => {
+                input.disabled = lock;
+                if (lock) {
+                    input.parentElement.classList.add('disabled-overlay');
+                } else {
+                    input.parentElement.classList.remove('disabled-overlay');
+                }
+            });
+        }
 
         // 時間表示の更新
         function updateDisplay() {
@@ -632,71 +891,76 @@
             document.getElementById('roundInfo').textContent = 
                 `ラウンド: ${currentRound} / ${totalRounds}`;
             
-            // タイトルにも表示
             document.title = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} - ポモドーロタイマー`;
         }
 
-        // アラーム音の生成(目覚まし風)
+        // アラーム音の生成(エラーハンドリング付き)
         function playAlarmSound() {
-            const now = audioContext.currentTime;
-            
-            for (let i = 0; i < 3; i++) {
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
+            safeAudioOperation(() => {
+                const now = audioContext.currentTime;
                 
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.value = 880;
-                oscillator.type = 'sine';
-                
-                gainNode.gain.setValueAtTime(0, now + i * 0.6);
-                gainNode.gain.linearRampToValueAtTime(0.3, now + i * 0.6 + 0.05);
-                gainNode.gain.linearRampToValueAtTime(0, now + i * 0.6 + 0.4);
-                
-                oscillator.start(now + i * 0.6);
-                oscillator.stop(now + i * 0.6 + 0.4);
-            }
+                for (let i = 0; i < 3; i++) {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = 880;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0, now + i * 0.6);
+                    gainNode.gain.linearRampToValueAtTime(0.3, now + i * 0.6 + 0.05);
+                    gainNode.gain.linearRampToValueAtTime(0, now + i * 0.6 + 0.4);
+                    
+                    oscillator.start(now + i * 0.6);
+                    oscillator.stop(now + i * 0.6 + 0.4);
+                }
+            }, 'アラーム音エラー');
         }
 
         // 整時刻チャイム音
         function playHourlyChime() {
             if (!document.getElementById('hourlyChime').checked) return;
             
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = 660;
-            oscillator.type = 'sine';
-            
-            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.05);
-            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.2);
-            
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.2);
+            safeAudioOperation(() => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 660;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.05);
+                gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.2);
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.2);
+            }, '整時刻チャイムエラー');
         }
 
         // 通知音
         function playNotificationSound() {
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = 523.25;
-            oscillator.type = 'sine';
-            
-            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.05);
-            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.15);
-            
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.15);
+            safeAudioOperation(() => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 523.25;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.05);
+                gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.15);
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.15);
+            }, '通知音エラー');
         }
 
         // 整時刻チェック
@@ -720,7 +984,6 @@
             const minutesLeft = Math.floor(timeLeft / 60);
             const secondsLeft = timeLeft % 60;
             
-            // 秒が00の時だけ通知をチェック（ぴったりの分に通知）
             if (secondsLeft !== 0) return;
             
             const notifications = [
@@ -738,11 +1001,9 @@
                 if (notif.enabled && minutesLeft === notif.time && 
                     !notificationsShown.has(notif.id)) {
                     
-                    // 通知タイプを取得
                     const notifType = document.querySelector('input[name="notifType"]:checked').value;
                     const message = `残り${notif.time}分です`;
                     
-                    // 音声タイプに応じて再生
                     if (notifType === 'sound' || notifType === 'both') {
                         playNotificationSound();
                     }
@@ -753,29 +1014,24 @@
                     
                     alert(message);
                     notificationsShown.add(notif.id);
-                    
-                    // ウィンドウを最前面に
                     window.focus();
                 }
             });
         }
 
-        // 休憩中の通知チェック（必須）
+        // 休憩中の通知チェック
         function checkBreakNotifications() {
             const minutesLeft = Math.floor(timeLeft / 60);
             const secondsLeft = timeLeft % 60;
             
-            // 秒が00の時だけ通知をチェック
             if (secondsLeft !== 0) return;
             
             const breakTime = parseInt(document.getElementById('breakNotifyTime').value);
             
             if (minutesLeft === breakTime && !notificationsShown.has('breakNotify')) {
-                // 通知タイプを取得
                 const notifType = document.querySelector('input[name="breakNotifType"]:checked').value;
                 const message = `残り休憩${breakTime}分です`;
                 
-                // 音声タイプに応じて再生
                 if (notifType === 'sound' || notifType === 'both') {
                     playNotificationSound();
                 }
@@ -786,8 +1042,6 @@
                 
                 alert(message);
                 notificationsShown.add('breakNotify');
-                
-                // ウィンドウを最前面に
                 window.focus();
             }
         }
@@ -798,7 +1052,6 @@
                 timeLeft--;
                 updateDisplay();
                 
-                // 作業時間中か休憩時間中かで通知を分ける
                 if (isWorkTime) {
                     checkWorkNotifications();
                 } else {
@@ -807,10 +1060,8 @@
                 
                 checkHourlyChime();
             } else {
-                // タイマー終了
                 const endType = document.querySelector('input[name="endType"]:checked').value;
                 
-                // 音声タイプに応じて再生
                 if (endType === 'sound' || endType === 'both') {
                     playAlarmSound();
                 }
@@ -828,18 +1079,15 @@
                 alert(message);
                 
                 if (isWorkTime) {
-                    // 休憩へ
                     isWorkTime = false;
                     timeLeft = parseInt(document.getElementById('breakTime').value) * 60;
                 } else {
-                    // 次のラウンドへ
                     const totalRounds = parseInt(document.getElementById('rounds').value);
                     if (currentRound < totalRounds) {
                         currentRound++;
                         isWorkTime = true;
                         timeLeft = parseInt(document.getElementById('workTime').value) * 60;
                     } else {
-                        // 全ラウンド完了
                         if (endType === 'voice' || endType === 'both') {
                             speak('全ラウンド完了。お疲れ様でした');
                         }
@@ -857,10 +1105,22 @@
         // 開始
         function startTimer() {
             if (!isRunning) {
+                // AudioContextを再開(エラーハンドリング付き)
+                safeAudioOperation(() => {
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                }, 'AudioContext再開エラー');
+                
                 isRunning = true;
                 document.getElementById('startBtn').disabled = true;
                 document.getElementById('pauseBtn').disabled = false;
                 notificationsShown.clear();
+                toggleSettingsLock(true);
+                
+                // 環境音を開始
+                const ambientType = document.querySelector('input[name="ambientSound"]:checked').value;
+                createAmbientSound(ambientType);
                 
                 timer = setInterval(tick, 1000);
             }
@@ -873,6 +1133,10 @@
                 clearInterval(timer);
                 document.getElementById('startBtn').disabled = false;
                 document.getElementById('pauseBtn').disabled = true;
+                toggleSettingsLock(false);
+                
+                // 環境音を停止
+                stopAmbientSound();
             }
         }
 
@@ -889,7 +1153,7 @@
         // 初期化
         updateDisplay();
         
-        // 設定変更時のリセット
+        // 設定変更時のリセット(実行中でない場合のみ)
         ['workTime', 'breakTime', 'rounds'].forEach(id => {
             document.getElementById(id).addEventListener('change', function() {
                 if (!isRunning) {
@@ -905,13 +1169,20 @@
             }
         });
 
-        // 初回のAudioContext起動(ユーザー操作が必要)
+        // 初回のAudioContext起動
         document.addEventListener('click', function initAudio() {
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
+            safeAudioOperation(() => {
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+            }, 'AudioContext初期化エラー');
             document.removeEventListener('click', initAudio);
         }, { once: true });
+
+        // ページを離れる前に環境音を停止
+        window.addEventListener('beforeunload', function() {
+            stopAmbientSound();
+        });
     </script>
 </body>
 </html>
