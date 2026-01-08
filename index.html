@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <title>ポモドーロタイマー</title>
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%2300ff88'/%3E%3Ctext x='50' y='70' font-size='60' text-anchor='middle' fill='%23000'%3E🍅%3C/text%3E%3C/svg%3E">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: #000000;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            padding: 30px;
+            width: 400px;
+            max-width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            border: 2px solid #333;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            transition: background 0.3s;
+            z-index: 10;
+        }
+
+        .close-btn:hover {
+            background: #cc0000;
+        }
+
+        h1 {
+            color: #00ff88;
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .timer-display {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border: 3px solid #00ff88;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .time {
+            font-size: 72px;
+            font-weight: bold;
+            color: #00ff88;
+            letter-spacing: 5px;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
+            font-family: 'Courier New', monospace;
+        }
+
+        .status {
+            color: #00ff88;
+            font-size: 16px;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            touch-action: manipulation;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: #000;
+        }
+
+        .start-btn:hover, .start-btn:active {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .pause-btn {
+            background: linear-gradient(135deg, #ffaa00 0%, #ff8800 100%);
+            color: #000;
+        }
+
+        .pause-btn:hover, .pause-btn:active {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 170, 0, 0.4);
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+            color: white;
+        }
+
+        .reset-btn:hover, .reset-btn:active {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 68, 68, 0.4);
+        }
+
+        .settings {
+            background: #1a1a1a;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+        }
+
+        .setting-group {
+            margin-bottom: 15px;
+        }
+
+        .setting-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            color: #00ff88;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #333;
+            border-radius: 5px;
+            background: #0a0a0a;
+            color: #00ff88;
+            font-size: 16px;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #0a0a0a;
+            border-radius: 8px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .radio-item label {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .notification-settings {
+            background: #0a0a0a;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .notification-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .notification-item label {
+            margin: 0;
+            flex: 1;
+            min-width: 40px;
+        }
+
+        .notification-item input[type="number"] {
+            width: 60px;
+            padding: 5px;
+        }
+
+        .toggle-settings {
+            background: #333;
+            color: #00ff88;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+
+        .toggle-settings:hover, .toggle-settings:active {
+            background: #444;
+        }
+
+        .settings.collapsed {
+            display: none;
+        }
+
+        .round-info {
+            color: #00ff88;
+            text-align: center;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .section-title {
+            color: #00ff88;
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #333;
+        }
+
+        .break-notification {
+            background: #0a3020;
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .break-notification .section-title {
+            color: #00ffaa;
+            border-bottom-color: #00ff88;
+        }
+
+        /* スマホ対応のCSS追加 */
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                width: 100%;
+                padding: 20px;
+                border-radius: 15px;
+            }
+
+            h1 {
+                font-size: 20px;
+                margin-bottom: 15px;
+            }
+
+            .timer-display {
+                padding: 20px;
+            }
+
+            .time {
+                font-size: 56px;
+                letter-spacing: 3px;
+            }
+
+            .status {
+                font-size: 14px;
+            }
+
+            .round-info {
+                font-size: 12px;
+            }
+
+            .controls {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            button {
+                padding: 12px;
+                font-size: 14px;
+            }
+
+            .close-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 20px;
+            }
+
+            .settings {
+                padding: 12px;
+            }
+
+            .section-title {
+                font-size: 12px;
+            }
+
+            label {
+                font-size: 13px;
+            }
+
+            input[type="number"] {
+                padding: 10px;
+                font-size: 16px;
+            }
+
+            .notification-item {
+                font-size: 13px;
+            }
+
+            .notification-item input[type="number"] {
+                width: 55px;
+            }
+
+            .radio-item label {
+                font-size: 13px;
+            }
+        }
+
+        /* 非常に小さい画面用 */
+        @media (max-width: 360px) {
+            .container {
+                padding: 15px;
+            }
+
+            .time {
+                font-size: 48px;
+            }
+
+            button {
+                padding: 10px;
+                font-size: 13px;
+            }
+        }
+
+        /* 横向き対応 */
+        @media (max-height: 600px) and (orientation: landscape) {
+            .container {
+                max-height: 95vh;
+            }
+
+            .timer-display {
+                padding: 15px;
+            }
+
+            .time {
+                font-size: 48px;
+            }
+
+            .controls {
+                flex-direction: row;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="close-btn" onclick="window.close()" title="閉じる">×</button>
+        
+        <h1>🍅 ポモドーロタイマー</h1>
+        
+        <div class="timer-display">
+            <div class="time" id="timeDisplay">25:00</div>
+            <div class="status" id="statusDisplay">作業時間</div>
+            <div class="round-info" id="roundInfo">ラウンド: 1 / 4</div>
+        </div>
+        
+        <div class="controls">
+            <button class="start-btn" id="startBtn" onclick="startTimer()">開始</button>
+            <button class="pause-btn" id="pauseBtn" onclick="pauseTimer()" disabled>一時停止</button>
+            <button class="reset-btn" onclick="resetTimer()">リセット</button>
+        </div>
+        
+        <button class="toggle-settings" onclick="toggleSettings()">⚙️ 設定</button>
+        
+        <div class="settings" id="settingsPanel">
+            <div class="setting-group">
+                <label>作業時間 (分)</label>
+                <input type="number" id="workTime" value="25" min="1" max="99">
+            </div>
+            
+            <div class="setting-group">
+                <label>休憩時間 (分)</label>
+                <input type="number" id="breakTime" value="5" min="1" max="99">
+            </div>
+            
+            <div class="setting-group">
+                <label>繰り返し回数</label>
+                <input type="number" id="rounds" value="4" min="1" max="20">
+            </div>
+            
+            <div class="setting-group">
+                <div class="section-title">🔔 通知音設定</div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="hourlyChime" checked>
+                    <label for="hourlyChime">整時刻通知</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="notificationsEnabled">
+                    <label for="notificationsEnabled">作業時間の途中通知を有効化</label>
+                </div>
+            </div>
+            
+            <div class="notification-settings" id="notificationSettings" style="display: none;">
+                <div class="section-title">🎤 作業中の通知音声設定</div>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="notifSound" name="notifType" value="sound" checked>
+                        <label for="notifSound">🔔 音のみ</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="notifVoice" name="notifType" value="voice">
+                        <label for="notifVoice">🎙️ 音声アナウンス(女性)</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="notifBoth" name="notifType" value="both">
+                        <label for="notifBoth">🔔🎙️ 音+音声アナウンス</label>
+                    </div>
+                </div>
+                
+                <div class="section-title">⏰ 作業中の通知タイミング</div>
+                <div class="notification-item">
+                    <input type="checkbox" id="notify1Enabled">
+                    <label>残り</label>
+                    <input type="number" id="notify1Time" value="15" min="1" max="99">
+                    <label>分です (通知1)</label>
+                </div>
+                
+                <div class="notification-item">
+                    <input type="checkbox" id="notify2Enabled">
+                    <label>残り</label>
+                    <input type="number" id="notify2Time" value="10" min="1" max="99">
+                    <label>分です (通知2)</label>
+                </div>
+                
+                <div class="notification-item">
+                    <input type="checkbox" id="notify3Enabled" checked>
+                    <label>残り</label>
+                    <input type="number" id="notify3Time" value="3" min="1" max="99">
+                    <label>分です (通知3)</label>
+                </div>
+                
+                <div class="notification-item">
+                    <input type="checkbox" id="notify4Enabled" checked>
+                    <label>残り</label>
+                    <input type="number" id="notify4Time" value="1" min="1" max="99">
+                    <label>分です (通知4)</label>
+                </div>
+            </div>
+            
+            <div class="break-notification">
+                <div class="section-title">☕ 休憩中の通知(必須)</div>
+                
+                <div class="notification-item">
+                    <input type="checkbox" id="breakNotifyEnabled" checked disabled>
+                    <label>残り休憩</label>
+                    <input type="number" id="breakNotifyTime" value="1" min="1" max="99">
+                    <label>分です</label>
+                </div>
+                
+                <div class="section-title">🎤 休憩通知の音声設定</div>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="breakNotifSound" name="breakNotifType" value="sound" checked>
+                        <label for="breakNotifSound">🔔 音のみ</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="breakNotifVoice" name="breakNotifType" value="voice">
+                        <label for="breakNotifVoice">🎙️ 音声アナウンス(女性)</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="breakNotifBoth" name="breakNotifType" value="both">
+                        <label for="breakNotifBoth">🔔🎙️ 音+音声アナウンス</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-group">
+                <div class="section-title">🎵 終了時の音声設定</div>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="endSound" name="endType" value="sound" checked>
+                        <label for="endSound">🔔 アラーム音のみ</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="endVoice" name="endType" value="voice">
+                        <label for="endVoice">🎙️ 音声「お疲れ様でした」</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="endBoth" name="endType" value="both">
+                        <label for="endBoth">🔔🎙️ 音+音声</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="endMute" name="endType" value="mute">
+                        <label for="endMute">🔇 ミュート(文字のみ)</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let timer = null;
+        let timeLeft = 25 * 60;
+        let isRunning = false;
+        let isWorkTime = true;
+        let currentRound = 1;
+        let notificationsShown = new Set();
+        let lastHourChecked = -1;
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const synth = window.speechSynthesis;
+        let femaleVoice = null;
+
+        // 女性の音声を取得
+        function loadVoices() {
+            const voices = synth.getVoices();
+            // 日本語の女性音声を優先的に選択
+            femaleVoice = voices.find(v => v.lang.includes('ja') && v.name.includes('Female')) ||
+                         voices.find(v => v.lang.includes('ja') && (v.name.includes('female') || v.name.includes('woman'))) ||
+                         voices.find(v => v.lang.includes('ja')) ||
+                         voices.find(v => v.name.includes('Female')) ||
+                         voices[0];
+        }
+
+        // 音声合成が読み込まれるのを待つ
+        if (synth.onvoiceschanged !== undefined) {
+            synth.onvoiceschanged = loadVoices;
+        }
+        loadVoices();
+
+        // 音声読み上げ関数
+        function speak(text) {
+            // 既存の音声をキャンセル
+            synth.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.1; // 少し高めの声
+            utterance.volume = 1.0;
+            
+            if (femaleVoice) {
+                utterance.voice = femaleVoice;
+            }
+            
+            synth.speak(utterance);
+        }
+
+        // 設定パネルの表示/非表示
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            panel.classList.toggle('collapsed');
+        }
+
+        // 通知設定の表示/非表示
+        document.getElementById('notificationsEnabled').addEventListener('change', function() {
+            document.getElementById('notificationSettings').style.display = 
+                this.checked ? 'block' : 'none';
+        });
+
+        // 時間表示の更新
+        function updateDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('timeDisplay').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            document.getElementById('statusDisplay').textContent = 
+                isWorkTime ? '作業時間' : '休憩時間';
+            
+            const totalRounds = parseInt(document.getElementById('rounds').value);
+            document.getElementById('roundInfo').textContent = 
+                `ラウンド: ${currentRound} / ${totalRounds}`;
+            
+            // タイトルにも表示
+            document.title = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} - ポモドーロタイマー`;
+        }
+
+        // アラーム音の生成(目覚まし風)
+        function playAlarmSound() {
+            const now = audioContext.currentTime;
+            
+            for (let i = 0; i < 3; i++) {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 880;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0, now + i * 0.6);
+                gainNode.gain.linearRampToValueAtTime(0.3, now + i * 0.6 + 0.05);
+                gainNode.gain.linearRampToValueAtTime(0, now + i * 0.6 + 0.4);
+                
+                oscillator.start(now + i * 0.6);
+                oscillator.stop(now + i * 0.6 + 0.4);
+            }
+        }
+
+        // 整時刻チャイム音
+        function playHourlyChime() {
+            if (!document.getElementById('hourlyChime').checked) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 660;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.05);
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.2);
+            
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.2);
+        }
+
+        // 通知音
+        function playNotificationSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 523.25;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.05);
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.15);
+            
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.15);
+        }
+
+        // 整時刻チェック
+        function checkHourlyChime() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            
+            if (currentMinute === 0 && currentHour !== lastHourChecked) {
+                playHourlyChime();
+                lastHourChecked = currentHour;
+            } else if (currentMinute !== 0) {
+                lastHourChecked = -1;
+            }
+        }
+
+        // 作業中の通知チェック
+        function checkWorkNotifications() {
+            if (!document.getElementById('notificationsEnabled').checked) return;
+            
+            const minutesLeft = Math.floor(timeLeft / 60);
+            const secondsLeft = timeLeft % 60;
+            
+            // 秒が00の時だけ通知をチェック（ぴったりの分に通知）
+            if (secondsLeft !== 0) return;
+            
+            const notifications = [
+                { id: 'notify1', enabled: document.getElementById('notify1Enabled').checked, 
+                  time: parseInt(document.getElementById('notify1Time').value) },
+                { id: 'notify2', enabled: document.getElementById('notify2Enabled').checked, 
+                  time: parseInt(document.getElementById('notify2Time').value) },
+                { id: 'notify3', enabled: document.getElementById('notify3Enabled').checked, 
+                  time: parseInt(document.getElementById('notify3Time').value) },
+                { id: 'notify4', enabled: document.getElementById('notify4Enabled').checked, 
+                  time: parseInt(document.getElementById('notify4Time').value) }
+            ];
+            
+            notifications.forEach(notif => {
+                if (notif.enabled && minutesLeft === notif.time && 
+                    !notificationsShown.has(notif.id)) {
+                    
+                    // 通知タイプを取得
+                    const notifType = document.querySelector('input[name="notifType"]:checked').value;
+                    const message = `残り${notif.time}分です`;
+                    
+                    // 音声タイプに応じて再生
+                    if (notifType === 'sound' || notifType === 'both') {
+                        playNotificationSound();
+                    }
+                    
+                    if (notifType === 'voice' || notifType === 'both') {
+                        speak(message);
+                    }
+                    
+                    alert(message);
+                    notificationsShown.add(notif.id);
+                    
+                    // ウィンドウを最前面に
+                    window.focus();
+                }
+            });
+        }
+
+        // 休憩中の通知チェック（必須）
+        function checkBreakNotifications() {
+            const minutesLeft = Math.floor(timeLeft / 60);
+            const secondsLeft = timeLeft % 60;
+            
+            // 秒が00の時だけ通知をチェック
+            if (secondsLeft !== 0) return;
+            
+            const breakTime = parseInt(document.getElementById('breakNotifyTime').value);
+            
+            if (minutesLeft === breakTime && !notificationsShown.has('breakNotify')) {
+                // 通知タイプを取得
+                const notifType = document.querySelector('input[name="breakNotifType"]:checked').value;
+                const message = `残り休憩${breakTime}分です`;
+                
+                // 音声タイプに応じて再生
+                if (notifType === 'sound' || notifType === 'both') {
+                    playNotificationSound();
+                }
+                
+                if (notifType === 'voice' || notifType === 'both') {
+                    speak(message);
+                }
+                
+                alert(message);
+                notificationsShown.add('breakNotify');
+                
+                // ウィンドウを最前面に
+                window.focus();
+            }
+        }
+
+        // タイマーの実行
+        function tick() {
+            if (timeLeft > 0) {
+                timeLeft--;
+                updateDisplay();
+                
+                // 作業時間中か休憩時間中かで通知を分ける
+                if (isWorkTime) {
+                    checkWorkNotifications();
+                } else {
+                    checkBreakNotifications();
+                }
+                
+                checkHourlyChime();
+            } else {
+                // タイマー終了
+                const endType = document.querySelector('input[name="endType"]:checked').value;
+                
+                // 音声タイプに応じて再生
+                if (endType === 'sound' || endType === 'both') {
+                    playAlarmSound();
+                }
+                
+                if (endType === 'voice' || endType === 'both') {
+                    speak('お疲れ様でした');
+                }
+                
+                window.focus();
+                
+                const message = isWorkTime ? 
+                    '作業時間終了!\nお疲れ様でした。休憩しましょう。' : 
+                    '休憩終了!\n次の作業を始めましょう。';
+                
+                alert(message);
+                
+                if (isWorkTime) {
+                    // 休憩へ
+                    isWorkTime = false;
+                    timeLeft = parseInt(document.getElementById('breakTime').value) * 60;
+                } else {
+                    // 次のラウンドへ
+                    const totalRounds = parseInt(document.getElementById('rounds').value);
+                    if (currentRound < totalRounds) {
+                        currentRound++;
+                        isWorkTime = true;
+                        timeLeft = parseInt(document.getElementById('workTime').value) * 60;
+                    } else {
+                        // 全ラウンド完了
+                        if (endType === 'voice' || endType === 'both') {
+                            speak('全ラウンド完了。お疲れ様でした');
+                        }
+                        alert('全ラウンド完了!\nお疲れ様でした!');
+                        resetTimer();
+                        return;
+                    }
+                }
+                
+                notificationsShown.clear();
+                updateDisplay();
+            }
+        }
+
+        // 開始
+        function startTimer() {
+            if (!isRunning) {
+                isRunning = true;
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = false;
+                notificationsShown.clear();
+                
+                timer = setInterval(tick, 1000);
+            }
+        }
+
+        // 一時停止
+        function pauseTimer() {
+            if (isRunning) {
+                isRunning = false;
+                clearInterval(timer);
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('pauseBtn').disabled = true;
+            }
+        }
+
+        // リセット
+        function resetTimer() {
+            pauseTimer();
+            isWorkTime = true;
+            currentRound = 1;
+            timeLeft = parseInt(document.getElementById('workTime').value) * 60;
+            notificationsShown.clear();
+            updateDisplay();
+        }
+
+        // 初期化
+        updateDisplay();
+        
+        // 設定変更時のリセット
+        ['workTime', 'breakTime', 'rounds'].forEach(id => {
+            document.getElementById(id).addEventListener('change', function() {
+                if (!isRunning) {
+                    resetTimer();
+                }
+            });
+        });
+
+        // ページの可視性変更時もタイマーを継続
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && isRunning) {
+                window.focus();
+            }
+        });
+
+        // 初回のAudioContext起動(ユーザー操作が必要)
+        document.addEventListener('click', function initAudio() {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            document.removeEventListener('click', initAudio);
+        }, { once: true });
+    </script>
+</body>
+</html>
