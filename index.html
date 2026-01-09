@@ -371,6 +371,43 @@
             border-bottom-color: #6666ff;
         }
 
+        .desktop-notification-section {
+            background: #2a1a0a;
+            border: 1px solid #ffaa00;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .desktop-notification-section .section-title {
+            color: #ffcc66;
+            border-bottom-color: #ffaa00;
+        }
+
+        .permission-status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+
+        .permission-granted {
+            background: #00ff88;
+            color: #000;
+        }
+
+        .permission-denied {
+            background: #ff4444;
+            color: #fff;
+        }
+
+        .permission-default {
+            background: #ffaa00;
+            color: #000;
+        }
+
         .youtube-player {
             display: none;
             position: absolute;
@@ -574,6 +611,26 @@
                 <input type="number" id="rounds" value="4" min="1" max="20">
             </div>
             
+            <div class="desktop-notification-section">
+                <div class="section-title">
+                    🔔 デスクトップ通知
+                    <span id="permissionStatus" class="permission-status permission-default">未設定</span>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="desktopNotificationEnabled" onchange="handleDesktopNotificationToggle()">
+                    <label for="desktopNotificationEnabled">デスクトップ通知を使用する</label>
+                </div>
+                
+                <small style="color: #888; font-size: 11px; display: block; margin-top: 10px;">
+                    💡 ヒント: デスクトップ通知を有効にすると、他のアプリを使用中でも画面の隅に通知が表示されます
+                </small>
+                
+                <small style="color: #ff8800; font-size: 11px; display: block; margin-top: 5px;" id="notificationWarning" style="display: none;">
+                    ⚠️ 通知が許可されていません。ブラウザの設定から通知を許可してください
+                </small>
+            </div>
+            
             <div class="ambient-sound-section">
                 <div class="section-title">🎵 環境音 (YouTube)</div>
                 
@@ -737,6 +794,7 @@
         let currentRound = 1;
         let notificationsShown = new Set();
         let lastHourChecked = -1;
+        let desktopNotificationPermission = 'default';
 
         // Brave/プライバシーブラウザ対応
         const audioContext = (() => {
@@ -757,6 +815,94 @@
         let firePlayer = null;
         let currentPlayer = null;
         let playersReady = false;
+
+        // デスクトップ通知の初期化と権限チェック
+        async function initDesktopNotification() {
+            if (!("Notification" in window)) {
+                console.info("このブラウザはデスクトップ通知をサポートしていません");
+                document.getElementById('desktopNotificationEnabled').disabled = true;
+                return;
+            }
+
+            desktopNotificationPermission = Notification.permission;
+            updatePermissionStatus();
+        }
+
+        // 権限ステータスの更新
+        function updatePermissionStatus() {
+            const statusElement = document.getElementById('permissionStatus');
+            const warningElement = document.getElementById('notificationWarning');
+            
+            if (desktopNotificationPermission === 'granted') {
+                statusElement.textContent = '✓ 許可済み';
+                statusElement.className = 'permission-status permission-granted';
+                warningElement.style.display = 'none';
+            } else if (desktopNotificationPermission === 'denied') {
+                statusElement.textContent = '✗ 拒否';
+                statusElement.className = 'permission-status permission-denied';
+                warningElement.style.display = 'block';
+                document.getElementById('desktopNotificationEnabled').checked = false;
+            } else {
+                statusElement.textContent = '? 未設定';
+                statusElement.className = 'permission-status permission-default';
+                warningElement.style.display = 'none';
+            }
+        }
+
+        // デスクトップ通知のトグル処理
+        async function handleDesktopNotificationToggle() {
+            const checkbox = document.getElementById('desktopNotificationEnabled');
+            
+            if (checkbox.checked) {
+                if (desktopNotificationPermission !== 'granted') {
+                    try {
+                        const permission = await Notification.requestPermission();
+                        desktopNotificationPermission = permission;
+                        updatePermissionStatus();
+                        
+                        if (permission !== 'granted') {
+                            checkbox.checked = false;
+                            alert('デスクトップ通知が許可されませんでした。\nブラウザの設定から通知を許可してください。');
+                        }
+                    } catch (error) {
+                        console.info('通知許可リクエストエラー:', error);
+                        checkbox.checked = false;
+                    }
+                }
+            }
+        }
+
+        // デスクトップ通知の送信
+        function sendDesktopNotification(title, body, icon = '🍅') {
+            const checkbox = document.getElementById('desktopNotificationEnabled');
+            
+            if (!checkbox.checked || desktopNotificationPermission !== 'granted') {
+                return;
+            }
+
+            try {
+                const notification = new Notification(title, {
+                    body: body,
+                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="45" fill="%2300ff88"/%3E%3Ctext x="50" y="70" font-size="60" text-anchor="middle" fill="%23000"%3E' + icon + '%3C/text%3E%3C/svg%3E',
+                    badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="45" fill="%2300ff88"/%3E%3C/svg%3E',
+                    requireInteraction: false,
+                    silent: true
+                });
+
+                // 5秒後に自動で閉じる
+                setTimeout(() => {
+                    notification.close();
+                }, 5000);
+
+                // 通知をクリックしたらウィンドウを前面に
+                notification.onclick = function() {
+                    window.focus();
+                    notification.close();
+                };
+            } catch (error) {
+                console.info('通知送信エラー:', error);
+            }
+        }
 
         // YouTube IFrame API準備完了
         function onYouTubeIframeAPIReady() {
@@ -926,7 +1072,7 @@
         });
 
         function toggleSettingsLock(lock) {
-            const inputs = document.querySelectorAll('#settingsPanel input[type="number"]:not(#breakNotifyTime), #settingsPanel input[type="checkbox"]:not(#breakNotifyEnabled):not(#hourlyChime), #settingsPanel input[type="radio"]:not([name="ambientSound"])');
+            const inputs = document.querySelectorAll('#settingsPanel input[type="number"]:not(#breakNotifyTime), #settingsPanel input[type="checkbox"]:not(#breakNotifyEnabled):not(#hourlyChime):not(#desktopNotificationEnabled), #settingsPanel input[type="radio"]:not([name="ambientSound"])');
             inputs.forEach(input => {
                 input.disabled = lock;
                 if (lock) {
@@ -1036,6 +1182,7 @@
             
             if (currentMinute === 0 && currentHour !== lastHourChecked) {
                 playHourlyChime();
+                sendDesktopNotification('⏰ 整時刻通知', `${currentHour}:00です`);
                 lastHourChecked = currentHour;
             } else if (currentMinute !== 0) {
                 lastHourChecked = -1;
@@ -1076,6 +1223,9 @@
                         speak(message);
                     }
                     
+                    // デスクトップ通知を送信
+                    sendDesktopNotification('🍅 作業中通知', message);
+                    
                     alert(message);
                     notificationsShown.add(notif.id);
                     window.focus();
@@ -1102,6 +1252,9 @@
                 if (notifType === 'voice' || notifType === 'both') {
                     speak(message);
                 }
+                
+                // デスクトップ通知を送信
+                sendDesktopNotification('☕ 休憩中通知', message);
                 
                 alert(message);
                 notificationsShown.add('breakNotify');
@@ -1138,6 +1291,13 @@
                     '作業時間終了!\nお疲れ様でした。休憩しましょう。' : 
                     '休憩終了!\n次の作業を始めましょう。';
                 
+                // デスクトップ通知を送信
+                if (isWorkTime) {
+                    sendDesktopNotification('✅ 作業終了', 'お疲れ様でした。休憩しましょう。', '✅');
+                } else {
+                    sendDesktopNotification('🔔 休憩終了', '次の作業を始めましょう。', '🔔');
+                }
+                
                 alert(message);
                 
                 if (isWorkTime) {
@@ -1153,6 +1313,7 @@
                         if (endType === 'voice' || endType === 'both') {
                             speak('全ラウンド完了。お疲れ様でした');
                         }
+                        sendDesktopNotification('🎉 全ラウンド完了', 'お疲れ様でした!', '🎉');
                         alert('全ラウンド完了!\nお疲れ様でした!');
                         resetTimer();
                         return;
@@ -1207,6 +1368,7 @@
         }
 
         updateDisplay();
+        initDesktopNotification();
         
         ['workTime', 'breakTime', 'rounds'].forEach(id => {
             document.getElementById(id).addEventListener('change', function() {
