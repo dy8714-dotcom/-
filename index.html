@@ -171,7 +171,7 @@
             font-weight: 500;
         }
 
-        input[type="number"], input[type="range"] {
+        input[type="number"], input[type="range"], input[type="text"] {
             width: 100%;
             padding: 8px;
             border: 2px solid #333;
@@ -181,12 +181,16 @@
             font-size: 16px;
         }
 
-        input[type="number"]:focus {
+        input[type="text"] {
+            margin-bottom: 10px;
+        }
+
+        input[type="number"]:focus, input[type="text"]:focus {
             outline: none;
             border-color: #00ff88;
         }
 
-        input[type="number"]:disabled {
+        input[type="number"]:disabled, input[type="text"]:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
@@ -399,6 +403,20 @@
             opacity: 1;
         }
 
+        .tab-name-section {
+            background: #1a1a1a;
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab-name-section .section-title {
+            color: #00ff88;
+            border-bottom-color: #00ff88;
+            margin-top: 0;
+        }
+
         /* スマホ対応 */
         @media (max-width: 480px) {
             body {
@@ -519,6 +537,13 @@
         
         <h1>🍅 ポモドーロタイマー</h1>
         
+        <!-- タブ名設定 -->
+        <div class="tab-name-section">
+            <div class="section-title">📝 タブ名 (複数タブで管理する場合)</div>
+            <input type="text" id="tabName" placeholder="例: プロジェクトA" maxlength="30">
+            <small style="color: #888; font-size: 11px;">※タイトルバーに表示されます</small>
+        </div>
+        
         <div class="timer-display">
             <div class="time" id="timeDisplay">25:00</div>
             <div class="status" id="statusDisplay">作業時間</div>
@@ -558,8 +583,8 @@
                         <label for="ambientNone">🔇 なし</label>
                     </div>
                     <div class="radio-item">
-                        <input type="radio" id="ambientWaves" name="ambientSound" value="waves">
-                        <label for="ambientWaves">🌊 波の音 (穏やかなビーチ)</label>
+                        <input type="radio" id="ambientForest" name="ambientSound" value="forest">
+                        <label for="ambientForest">🌲 森の音 (鳥・風)</label>
                     </div>
                     <div class="radio-item">
                         <input type="radio" id="ambientRain" name="ambientSound" value="rain">
@@ -580,6 +605,10 @@
                         <span>🔊</span>
                     </div>
                 </div>
+                
+                <small style="color: #888; font-size: 11px; display: block; margin-top: 10px;">
+                    💡 ヒント: 複数タブで使う場合、1つのタブだけ環境音をONにすることをおすすめします
+                </small>
             </div>
             
             <div class="setting-group">
@@ -695,7 +724,7 @@
     </div>
 
     <!-- YouTube Players (非表示) -->
-    <div id="wavesPlayer" class="youtube-player"></div>
+    <div id="forestPlayer" class="youtube-player"></div>
     <div id="rainPlayer" class="youtube-player"></div>
     <div id="firePlayer" class="youtube-player"></div>
 
@@ -709,7 +738,7 @@
         let notificationsShown = new Set();
         let lastHourChecked = -1;
 
-        // Brave/プライバシーブラウザ対応: すべてのエラーを完全に抑制
+        // Brave/プライバシーブラウザ対応
         const audioContext = (() => {
             try {
                 return new (window.AudioContext || window.webkitAudioContext)();
@@ -723,7 +752,7 @@
         let femaleVoice = null;
 
         // YouTube Player変数
-        let wavesPlayer = null;
+        let forestPlayer = null;
         let rainPlayer = null;
         let firePlayer = null;
         let currentPlayer = null;
@@ -732,17 +761,17 @@
         // YouTube IFrame API準備完了
         function onYouTubeIframeAPIReady() {
             try {
-                // 🌊 波の音 (3時間・穏やかなビーチ)
-                wavesPlayer = new YT.Player('wavesPlayer', {
-                    videoId: 'bn9F19N2La4',
+                // 🌲 森の音 (10時間・鳥のさえずり・風)
+                forestPlayer = new YT.Player('forestPlayer', {
+                    videoId: 'xNN7iTA57jM',
                     playerVars: {
                         autoplay: 0,
                         controls: 0,
                         loop: 1,
-                        playlist: 'bn9F19N2La4'
+                        playlist: 'xNN7iTA57jM'
                     },
                     events: {
-                        onReady: () => console.info('波の音プレイヤー準備完了')
+                        onReady: () => console.info('森の音プレイヤー準備完了')
                     }
                 });
 
@@ -790,10 +819,10 @@
                 
                 const volume = parseInt(document.getElementById('ambientVolume').value);
                 
-                if (type === 'waves' && wavesPlayer) {
-                    currentPlayer = wavesPlayer;
-                    wavesPlayer.setVolume(volume);
-                    wavesPlayer.playVideo();
+                if (type === 'forest' && forestPlayer) {
+                    currentPlayer = forestPlayer;
+                    forestPlayer.setVolume(volume);
+                    forestPlayer.playVideo();
                 } else if (type === 'rain' && rainPlayer) {
                     currentPlayer = rainPlayer;
                     rainPlayer.setVolume(volume);
@@ -841,6 +870,11 @@
             });
         });
 
+        // タブ名の変更
+        document.getElementById('tabName').addEventListener('input', function() {
+            updateDisplay();
+        });
+
         // Brave対応: 音声機能のエラーハンドリング強化
         function loadVoices() {
             try {
@@ -850,9 +884,7 @@
                              voices.find(v => v.lang.includes('ja')) ||
                              voices.find(v => v.name.includes('Female')) ||
                              voices[0];
-            } catch (error) {
-                // エラーを完全に無視
-            }
+            } catch (error) {}
         }
 
         if (synth && synth.onvoiceschanged !== undefined) {
@@ -860,7 +892,7 @@
         }
         loadVoices();
 
-        // 音声読み上げ(Brave完全対応)
+        // 音声読み上げ
         function speak(text) {
             try {
                 if (!synth) return;
@@ -877,12 +909,10 @@
                     utterance.voice = femaleVoice;
                 }
                 
-                utterance.onerror = () => {}; // エラーを無視
+                utterance.onerror = () => {};
                 
                 synth.speak(utterance);
-            } catch (error) {
-                // エラーを完全に無視
-            }
+            } catch (error) {}
         }
 
         function toggleSettings() {
@@ -910,8 +940,9 @@
         function updateDisplay() {
             const minutes = Math.floor(timeLeft / 60);
             const seconds = timeLeft % 60;
-            document.getElementById('timeDisplay').textContent = 
-                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            document.getElementById('timeDisplay').textContent = timeStr;
             
             document.getElementById('statusDisplay').textContent = 
                 isWorkTime ? '作業時間' : '休憩時間';
@@ -920,7 +951,10 @@
             document.getElementById('roundInfo').textContent = 
                 `ラウンド: ${currentRound} / ${totalRounds}`;
             
-            document.title = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} - ポモドーロタイマー`;
+            // タブ名を含めたタイトル
+            const tabName = document.getElementById('tabName').value;
+            const prefix = tabName ? `[${tabName}] ` : '';
+            document.title = `${prefix}${timeStr} - ポモドーロ`;
         }
 
         function playAlarmSound() {
@@ -946,9 +980,7 @@
                     oscillator.start(now + i * 0.6);
                     oscillator.stop(now + i * 0.6 + 0.4);
                 }
-            } catch (error) {
-                // エラーを完全に無視
-            }
+            } catch (error) {}
         }
 
         function playHourlyChime() {
@@ -972,9 +1004,7 @@
                 
                 oscillator.start();
                 oscillator.stop(audioContext.currentTime + 0.2);
-            } catch (error) {
-                // エラーを完全に無視
-            }
+            } catch (error) {}
         }
 
         function playNotificationSound() {
@@ -996,9 +1026,7 @@
                 
                 oscillator.start();
                 oscillator.stop(audioContext.currentTime + 0.15);
-            } catch (error) {
-                // エラーを完全に無視
-            }
+            } catch (error) {}
         }
 
         function checkHourlyChime() {
@@ -1138,7 +1166,6 @@
 
         function startTimer() {
             if (!isRunning) {
-                // AudioContext再開(エラー完全無視)
                 try {
                     if (audioContext && audioContext.state === 'suspended') {
                         audioContext.resume();
@@ -1151,7 +1178,6 @@
                 notificationsShown.clear();
                 toggleSettingsLock(true);
                 
-                // 環境音開始
                 const ambientType = document.querySelector('input[name="ambientSound"]:checked').value;
                 playAmbientSound(ambientType);
                 
@@ -1196,7 +1222,6 @@
             }
         });
 
-        // Brave対応: クリック時のAudioContext初期化(エラー完全無視)
         document.addEventListener('click', function initAudio() {
             try {
                 if (audioContext && audioContext.state === 'suspended') {
