@@ -7,6 +7,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
     <title>ポモドーロタイマー</title>
+    <!-- 
+        Version: 2.0
+        Created: 2026-01-14
+        Changes:
+        - 環境音追加: 波の音、鈴虫、ランダム再生 (5音源を5分ごと切替)
+        - 通知拡張: 4つ→5つ (半分、経過、残り×3)
+        - 整時刻通知: 00分と30分に対応
+    -->
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%2300ff88'/%3E%3Ctext x='50' y='70' font-size='60' text-anchor='middle' fill='%23000'%3E🍅%3C/text%3E%3C/svg%3E">
     <style>
         * {
@@ -651,6 +659,18 @@
                         <input type="radio" id="ambientFire" name="ambientSound" value="fire">
                         <label for="ambientFire">🔥 焚き火 (パチパチ音)</label>
                     </div>
+                    <div class="radio-item">
+                        <input type="radio" id="ambientWave" name="ambientSound" value="wave">
+                        <label for="ambientWave">🌊 波の音 (静かな海)</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="ambientCricket" name="ambientSound" value="cricket">
+                        <label for="ambientCricket">🦗 秋の夜音 (鈴虫・夜)</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="ambientRandom" name="ambientSound" value="random">
+                        <label for="ambientRandom">🎲 ランダム再生</label>
+                    </div>
                 </div>
                 
                 <div class="setting-group" style="margin-top: 10px;">
@@ -702,30 +722,34 @@
                 <div class="section-title">⏰ 作業中の通知タイミング</div>
                 <div class="notification-item">
                     <input type="checkbox" id="notify1Enabled">
-                    <label>残り</label>
-                    <input type="number" id="notify1Time" value="15" min="1" max="99">
-                    <label>分です (通知1)</label>
+                    <label>残り時間半分です (通知1)</label>
                 </div>
                 
                 <div class="notification-item">
                     <input type="checkbox" id="notify2Enabled">
-                    <label>残り</label>
-                    <input type="number" id="notify2Time" value="10" min="1" max="99">
-                    <label>分です (通知2)</label>
+                    <input type="number" id="notify2Time" value="5" min="1" max="99">
+                    <label>分経過 (通知2)</label>
                 </div>
                 
                 <div class="notification-item">
-                    <input type="checkbox" id="notify3Enabled" checked>
+                    <input type="checkbox" id="notify3Enabled">
                     <label>残り</label>
-                    <input type="number" id="notify3Time" value="3" min="1" max="99">
+                    <input type="number" id="notify3Time" value="10" min="1" max="99">
                     <label>分です (通知3)</label>
                 </div>
                 
                 <div class="notification-item">
-                    <input type="checkbox" id="notify4Enabled" checked>
+                    <input type="checkbox" id="notify4Enabled">
                     <label>残り</label>
-                    <input type="number" id="notify4Time" value="1" min="1" max="99">
+                    <input type="number" id="notify4Time" value="5" min="1" max="99">
                     <label>分です (通知4)</label>
+                </div>
+                
+                <div class="notification-item">
+                    <input type="checkbox" id="notify5Enabled" checked>
+                    <label>残り</label>
+                    <input type="number" id="notify5Time" value="1" min="1" max="99">
+                    <label>分です (通知5)</label>
                 </div>
             </div>
             
@@ -784,6 +808,8 @@
     <div id="forestPlayer" class="youtube-player"></div>
     <div id="rainPlayer" class="youtube-player"></div>
     <div id="firePlayer" class="youtube-player"></div>
+    <div id="wavePlayer" class="youtube-player"></div>
+    <div id="cricketPlayer" class="youtube-player"></div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
@@ -813,8 +839,16 @@
         let forestPlayer = null;
         let rainPlayer = null;
         let firePlayer = null;
+        let wavePlayer = null;
+        let cricketPlayer = null;
         let currentPlayer = null;
         let playersReady = false;
+        
+        // ランダム再生用変数
+        let randomSources = ['forest', 'rain', 'fire', 'wave', 'cricket'];
+        let lastRandomSource = null;
+        let randomIntervalId = null;
+        let randomStartTime = 0;
 
         // デスクトップ通知の初期化と権限チェック
         async function initDesktopNotification() {
@@ -945,8 +979,36 @@
                         playlist: 'L_LUpnjgPso'
                     },
                     events: {
+                        onReady: () => console.info('焚き火プレイヤー準備完了')
+                    }
+                });
+                
+                // 🌊 波の音 (静かな海)
+                wavePlayer = new YT.Player('wavePlayer', {
+                    videoId: 'V5pJuh4Wspo',
+                    playerVars: {
+                        autoplay: 0,
+                        controls: 0,
+                        loop: 1,
+                        playlist: 'V5pJuh4Wspo'
+                    },
+                    events: {
+                        onReady: () => console.info('波の音プレイヤー準備完了')
+                    }
+                });
+                
+                // 🦗 秋の夜音 (鈴虫・夜)
+                cricketPlayer = new YT.Player('cricketPlayer', {
+                    videoId: 'yf2zE6qzq5Y',
+                    playerVars: {
+                        autoplay: 0,
+                        controls: 0,
+                        loop: 1,
+                        playlist: 'yf2zE6qzq5Y'
+                    },
+                    events: {
                         onReady: () => {
-                            console.info('焚き火プレイヤー準備完了');
+                            console.info('鈴虫プレイヤー準備完了');
                             playersReady = true;
                         }
                     }
@@ -965,6 +1027,11 @@
                 
                 const volume = parseInt(document.getElementById('ambientVolume').value);
                 
+                if (type === 'random') {
+                    startRandomPlayback();
+                    return;
+                }
+                
                 if (type === 'forest' && forestPlayer) {
                     currentPlayer = forestPlayer;
                     forestPlayer.setVolume(volume);
@@ -977,6 +1044,14 @@
                     currentPlayer = firePlayer;
                     firePlayer.setVolume(volume);
                     firePlayer.playVideo();
+                } else if (type === 'wave' && wavePlayer) {
+                    currentPlayer = wavePlayer;
+                    wavePlayer.setVolume(volume);
+                    wavePlayer.playVideo();
+                } else if (type === 'cricket' && cricketPlayer) {
+                    currentPlayer = cricketPlayer;
+                    cricketPlayer.setVolume(volume);
+                    cricketPlayer.playVideo();
                 }
             } catch (error) {
                 console.info('環境音再生:', error.message);
@@ -986,12 +1061,80 @@
         // 環境音の停止
         function stopAmbientSound() {
             try {
+                // ランダムタイマー停止
+                if (randomIntervalId) {
+                    clearInterval(randomIntervalId);
+                    randomIntervalId = null;
+                }
+                
                 if (currentPlayer) {
                     currentPlayer.pauseVideo();
                     currentPlayer = null;
                 }
             } catch (error) {
                 console.info('環境音停止:', error.message);
+            }
+        }
+        
+        // ランダム再生開始
+        function startRandomPlayback() {
+            try {
+                randomStartTime = Date.now();
+                playNextRandomSource();
+                
+                // 5分ごとに切り替え
+                randomIntervalId = setInterval(() => {
+                    playNextRandomSource();
+                }, 5 * 60 * 1000); // 5分
+            } catch (error) {
+                console.info('ランダム再生開始:', error.message);
+            }
+        }
+        
+        // 次のランダム音源を再生
+        function playNextRandomSource() {
+            try {
+                // 前回と同じ音源を除外
+                let availableSources = randomSources.filter(src => src !== lastRandomSource);
+                
+                // ランダムに選択
+                const randomIndex = Math.floor(Math.random() * availableSources.length);
+                const selectedSource = availableSources[randomIndex];
+                
+                lastRandomSource = selectedSource;
+                
+                console.info(`ランダム再生: ${selectedSource}`);
+                
+                // 直接プレーヤーを再生 (再帰呼び出しを防ぐ)
+                const volume = parseInt(document.getElementById('ambientVolume').value);
+                
+                if (currentPlayer) {
+                    currentPlayer.pauseVideo();
+                }
+                
+                if (selectedSource === 'forest' && forestPlayer) {
+                    currentPlayer = forestPlayer;
+                    forestPlayer.setVolume(volume);
+                    forestPlayer.playVideo();
+                } else if (selectedSource === 'rain' && rainPlayer) {
+                    currentPlayer = rainPlayer;
+                    rainPlayer.setVolume(volume);
+                    rainPlayer.playVideo();
+                } else if (selectedSource === 'fire' && firePlayer) {
+                    currentPlayer = firePlayer;
+                    firePlayer.setVolume(volume);
+                    firePlayer.playVideo();
+                } else if (selectedSource === 'wave' && wavePlayer) {
+                    currentPlayer = wavePlayer;
+                    wavePlayer.setVolume(volume);
+                    wavePlayer.playVideo();
+                } else if (selectedSource === 'cricket' && cricketPlayer) {
+                    currentPlayer = cricketPlayer;
+                    cricketPlayer.setVolume(volume);
+                    cricketPlayer.playVideo();
+                }
+            } catch (error) {
+                console.info('ランダム音源再生:', error.message);
             }
         }
 
@@ -1180,11 +1323,13 @@
             const currentHour = now.getHours();
             const currentMinute = now.getMinutes();
             
-            if (currentMinute === 0 && currentHour !== lastHourChecked) {
+            // 00分と30分に通知
+            if ((currentMinute === 0 || currentMinute === 30) && currentHour !== lastHourChecked) {
                 playHourlyChime();
-                sendDesktopNotification('⏰ 整時刻通知', `${currentHour}:00です`);
+                const timeString = currentMinute === 0 ? `${currentHour}:00` : `${currentHour}:30`;
+                sendDesktopNotification('⏰ 整時刻通知', `${timeString}です`);
                 lastHourChecked = currentHour;
-            } else if (currentMinute !== 0) {
+            } else if (currentMinute !== 0 && currentMinute !== 30) {
                 lastHourChecked = -1;
             }
         }
@@ -1198,22 +1343,55 @@
             if (secondsLeft !== 0) return;
             
             const notifications = [
+                // 通知1: 残り時間半分
                 { id: 'notify1', enabled: document.getElementById('notify1Enabled').checked, 
-                  time: parseInt(document.getElementById('notify1Time').value) },
+                  type: 'halfway', time: null },
+                // 通知2: ○分経過
                 { id: 'notify2', enabled: document.getElementById('notify2Enabled').checked, 
-                  time: parseInt(document.getElementById('notify2Time').value) },
+                  type: 'elapsed', time: parseInt(document.getElementById('notify2Time').value) },
+                // 通知3: 残り○分
                 { id: 'notify3', enabled: document.getElementById('notify3Enabled').checked, 
-                  time: parseInt(document.getElementById('notify3Time').value) },
+                  type: 'remaining', time: parseInt(document.getElementById('notify3Time').value) },
+                // 通知4: 残り○分
                 { id: 'notify4', enabled: document.getElementById('notify4Enabled').checked, 
-                  time: parseInt(document.getElementById('notify4Time').value) }
+                  type: 'remaining', time: parseInt(document.getElementById('notify4Time').value) },
+                // 通知5: 残り○分
+                { id: 'notify5', enabled: document.getElementById('notify5Enabled').checked, 
+                  type: 'remaining', time: parseInt(document.getElementById('notify5Time').value) }
             ];
             
             notifications.forEach(notif => {
-                if (notif.enabled && minutesLeft === notif.time && 
-                    !notificationsShown.has(notif.id)) {
-                    
+                if (!notif.enabled || notificationsShown.has(notif.id)) return;
+                
+                let shouldNotify = false;
+                let message = '';
+                
+                if (notif.type === 'halfway') {
+                    // 残り時間半分
+                    const workMinutes = parseInt(document.getElementById('workTime').value);
+                    const halfwayTime = Math.floor(workMinutes / 2);
+                    if (minutesLeft === halfwayTime && secondsLeft === 0) {
+                        shouldNotify = true;
+                        message = '残り時間半分です';
+                    }
+                } else if (notif.type === 'elapsed') {
+                    // ○分経過
+                    const workMinutes = parseInt(document.getElementById('workTime').value);
+                    const elapsedMinutes = workMinutes - minutesLeft;
+                    if (elapsedMinutes === notif.time && secondsLeft === 0) {
+                        shouldNotify = true;
+                        message = `${notif.time}分経過`;
+                    }
+                } else if (notif.type === 'remaining') {
+                    // 残り○分
+                    if (minutesLeft === notif.time && secondsLeft === 0) {
+                        shouldNotify = true;
+                        message = `残り${notif.time}分です`;
+                    }
+                }
+                
+                if (shouldNotify) {
                     const notifType = document.querySelector('input[name="notifType"]:checked').value;
-                    const message = `残り${notif.time}分です`;
                     
                     if (notifType === 'sound' || notifType === 'both') {
                         playNotificationSound();
